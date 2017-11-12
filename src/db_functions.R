@@ -28,12 +28,5 @@ addGameDays <- function(db){
   dbDisconnect(con)
 }
 
-populateDB <- function(timerange, db){
-  getPitches(timerange, db)
-  addPlayers(db)
-  # addGameDays(db)
-}
-
-
 
 
