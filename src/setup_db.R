@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-# Setup database 
+# Script to setup the database 
 # 
 # Daniel Gale 2017 (c)
 # ------------------------------------------------------------------------------
@@ -12,6 +12,7 @@ library(RSQLite)
 
 source("db_functions.R")
 
+# script params
 database <- "../data/pitches.sqlite3"
 start_date <- "2016-04-03"
 end_date <- "2017-11-03"

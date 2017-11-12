@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-# Scrape Pitchf/x data into local sqlite database
+# Functions to populate and setup the database
 # 
 # Daniel Gale 2017 (c)
 # ------------------------------------------------------------------------------
