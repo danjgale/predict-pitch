@@ -28,3 +28,8 @@ addGameDays <- function(db){
   dbDisconnect(con)
 }
 
+appendDB <- function(timerange, db){
+  con <- dbConnect(SQLite(), dbname = db)
+  update_db(start = timerange[1], end = timerange[2], connect = con)
+  dbDisconnect(con)
+}
