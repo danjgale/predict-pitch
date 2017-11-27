@@ -28,5 +28,3 @@ addGameDays <- function(db){
   dbDisconnect(con)
 }
 
-
-
