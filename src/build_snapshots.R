@@ -7,6 +7,7 @@
 library(pitchRx)
 library(DBI)
 library(RSQLite)
+library(jsonlite)
 
 # enter in pitch params as: c("x0", "y0", "z0", "vx0", "vy0", "vz0", "ax", "ay", "az")
 
@@ -16,23 +17,27 @@ library(RSQLite)
 
 rm(list=ls())
 
-query <- 'SELECT x0, y0, z0, vx0, vy0, vz0, ax, ay, az FROM pitch'
+query <- 'SELECT gameday_link, event_num, play_guid, x0, y0, z0, vx0, vy0, vz0, ax, ay, az FROM pitch'
 
 con <- dbConnect(SQLite(), '../data/pitches.sqlite3')
 result <- dbSendQuery(con, query)
 df <- dbFetch(result)
+df <- df[complete.cases(df),]
 
-# snapshots <- apply(df, 1, function(x) getSnapshots(x))
+test_df <- head(df)
 
-snapshots <- list()
-for (i in 1:nrow(df)){
-  
-  if (any(is.na(df[i,]))){
-    snapshots[[i]] <- NA
-    print(paste(i, "NA"))
-  } else {
-    snapshots[[i]] <- getSnapshots(df[i,])
-    print(paste(i, "ok"))
-  }
-  
+make_snapshots <- function(x){
+  toJSON(getSnapshots(x), matrix = 'rowmajor', pretty = TRUE)
 }
+
+snapshots <- vector("list", nrow(df))
+for (i in c(1:nrow(df))){
+  print(i)
+  snapshots[[i]] <- make_snapshots(df[i, c(4:12)])
+}
+
+saveRDS(snapshots, '../data/shapshots.rds')
+
+output_df <- cbind(df[,c(1:3)], 'trajectories'=unlist(snapshots, use.names=FALSE))
+dbWriteTable(con, 'snapshots', output_df, overwrite=TRUE)
+dbDisconnect(con)
