@@ -45,7 +45,7 @@ def generate_table(db):
     )
     return df
 
-def judge_pitch(x, z, zone_bounds):
+def call_pitch(x, z, zone_bounds):
     """Determine if pitch is a strike or a ball based on ball position as
     it crosses homeplate.
 
