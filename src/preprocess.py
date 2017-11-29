@@ -3,6 +3,7 @@
 import pandas as pd
 import numpy as np
 import json
+import re
 import sqlite3
 
 
@@ -30,7 +31,7 @@ def generate_table(db):
         'from atbat'
     )
     q2 = (
-        'select num, event_num, play_guid, count, pitch_type, gameday_link, '
+        'select num, event_num, play_guid, count, type, pitch_type, gameday_link, '
         'sz_top, sz_bot, px, pz, spin_rate, spin_dir, vx0, vy0, vz0 '
         'from pitch'
     )
@@ -45,6 +46,7 @@ def generate_table(db):
     )
     return df
 
+
 def call_pitch(x, z, zone_bounds):
     """Determine if pitch is a strike or a ball based on ball position as
     it crosses homeplate.
@@ -53,11 +55,14 @@ def call_pitch(x, z, zone_bounds):
     ball or strike regardless of whether or not the batter swung. Zone bounds
     entered in as a list: [top, bottom]
     """
-
     if (abs(x) < 8.5) & (z < zone_bounds[0]) & (z > zone_bounds[1]):
         return 's'
     else:
         return 'b'
+
+
+def parse_count(x):
+    return tuple(map(int, re.findall(r'\d', x)))
 
 
 def parse_trajectories(x):
