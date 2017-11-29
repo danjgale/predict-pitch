@@ -23,13 +23,42 @@ class PitchDB(object):
         self._db_connection.close()
 
 
-# def query_main_table():
-#     sql = (
+def generate_table(db):
+    q1 = (
+        'select gameday_link, num, pitcher, pitcher_name, batter, batter_name, '
+        'b, s, o, p_throws, stand '
+        'from atbat'
+    )
+    q2 = (
+        'select num, event_num, play_guid, count, pitch_type, gameday_link, '
+        'sz_top, sz_bot, px, pz, spin_rate, spin_dir, vx0, vy0, vz0 '
+        'from pitch'
+    )
+    q3 = (
+        'select trajectories, gameday_link, event_num, play_guid '
+        'from snapshots'
+    )
+    df = (
+        db.query(q2)
+          .merge(db.query(q3), on=('gameday_link', 'event_num', 'play_guid'))
+          .merge(db.query(q1), on=('gameday_link', 'num'))
+    )
+    return df
 
+def judge_pitch(x, z, zone_bounds):
+    """Determine if pitch is a strike or a ball based on ball position as
+    it crosses homeplate.
 
+    Get the x and z position of the ball at home plate and set as either a
+    ball or strike regardless of whether or not the batter swung. Zone bounds
+    entered in as a list: [top, bottom]
+    """
 
+    if (abs(x) < 8.5) & (z < zone_bounds[0]) & (z > zone_bounds[1]):
+        return 's'
+    else:
+        return 'b'
 
-#     )
 
 def parse_trajectories(x):
     return np.array(json.loads(x))
@@ -47,27 +76,4 @@ def get_location(x, time=180, from_plate=True):
 if __name__ == '__main__':
 
     db = PitchDB()
-
-    q1 = (
-        'select batter_name, pitcher_name, gameday_link, num '
-        'from atbat'
-    )
-
-    atbat = db.query(q1)
-
-    q2 = (
-        'select count, pitch_type, gameday_link, num, event_num, play_guid '
-        'from pitch'
-    )
-
-    pitch = db.query(q2)
-
-    q3 = (
-        'select trajectories, gameday_link, event_num, play_guid '
-        'from snapshots'
-    )
-
-    snapshots = db.query(q3)
-
-    df = pitch.merge(snapshots, on=('gameday_link', 'event_num', 'play_guid'))
-    df2 = df.merge(atbat, on=('gameday_link', 'num'))
+    main_df = generate_table(db)
