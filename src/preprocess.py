@@ -80,8 +80,7 @@ def expand_location(x):
     return x
 
 
-if __name__ == '__main__':
-
+def main():
     db = PitchDB()
     db.connect()
     df = generate_table(db)
@@ -93,4 +92,8 @@ if __name__ == '__main__':
 
     db.create(df, 'features')
     db.close()
+
+
+if __name__ == '__main__':
+    main()
 
