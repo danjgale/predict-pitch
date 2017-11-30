@@ -8,28 +8,8 @@ import sqlite3
 import numba
 
 
-class PitchDB(object):
-    _db_connection = None
-    _db_cur = None
-
-    def __init__(self):
-        self._db_connection = sqlite3.connect('../data/pitches.sqlite3')
-
-    def query(self, query, **kwargs):
-        return pd.read_sql(query, self._db_connection, **kwargs)
-
-    def create(self, data, name, if_exists='replace', index=False, **kwargs):
-        data.to_sql(name, con=self._db_connection, if_exists=if_exists,
-                  index=index, **kwargs)
-
-    def close(self):
-        self._db_connection.close()
-
-    def __del__(self):
-        self._db_connection.close()
-
-
 def generate_table(db):
+    """Queries to pull in appropriate data and join for main table"""
     q1 = (
         'select gameday_link, num, pitcher, pitcher_name, batter, batter_name, '
         'b, s, o, p_throws, stand '
@@ -66,17 +46,21 @@ def call_pitch(x, z, zone_bounds):
         return 'b'
 
 def parse_count(x):
+    """Create separate columns for balls and strikes in the count"""
     series = x.str.split('-', expand=True)
     series.columns = ['balls', 'strike']
     return series
 
 
 def parse_trajectories(x):
+    """Conversion of trajectory data from json to an array"""
     return np.array(json.loads(x))
 
 
 def get_location(x, time=180, from_plate=True):
-    """Get pitch location at specified time"""
+    """Get pitch location at specified time; generate an x, y, z location
+    array
+    """
     ix = int(time/10)
     try:
         if from_plate:
@@ -90,10 +74,12 @@ def get_location(x, time=180, from_plate=True):
 
 
 def expand_location(x):
+    """Create x, y, z columns from location array"""
     x = x.apply(np.ravel)
     x = x.apply(pd.Series)
     x.columns = ['tx', 'ty', 'tz']
     return x
+
 
 if __name__ == '__main__':
 
