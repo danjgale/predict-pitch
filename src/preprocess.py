@@ -5,6 +5,7 @@ import numpy as np
 import json
 import re
 import sqlite3
+import numba
 
 
 class PitchDB(object):
@@ -60,9 +61,10 @@ def call_pitch(x, z, zone_bounds):
     else:
         return 'b'
 
-
 def parse_count(x):
-    return tuple(map(int, re.findall(r'\d', x)))
+    series = x.str.split('-', expand=True)
+    series.columns = ['balls', 'strike']
+    return series
 
 
 def parse_trajectories(x):
@@ -72,13 +74,21 @@ def parse_trajectories(x):
 def get_location(x, time=180, from_plate=True):
     """Get pitch location at specified time"""
     ix = int(time/10)
-    if from_plate:
-        # index from end of trajectory (i.e. home plate)
-        return parse_trajectories(x)[:, -ix, :]
-    else:
-        return parse_trajectories(x)[:, ix, :]
+    try:
+        if from_plate:
+            # index from end of trajectory (i.e. home plate)
+            return parse_trajectories(x)[:, -ix, :]
+        else:
+            return parse_trajectories(x)[:, ix, :]
+    except IndexError:
+        print('Warning: Insufficient path. Shape {}'.format(parse_trajectories(x).shape))
+        return np.nan
 
 if __name__ == '__main__':
 
     db = PitchDB()
     main_df = generate_table(db)
+
+    counts = parse_count(main_df['count'])
+    main_df = pd.concat([main_df, counts], axis=1)
+    z = main_df['trajectories'].apply(lambda x: get_location(x))
