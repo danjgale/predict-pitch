@@ -84,7 +84,6 @@ def expand_location(x):
 
 def main():
     db = PitchDB()
-    db.connect()
     df = generate_table(db)
 
     counts = parse_count(df['count'])
