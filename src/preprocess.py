@@ -4,8 +4,7 @@ import pandas as pd
 import numpy as np
 import json
 import re
-import sqlite3
-import numba
+from PitchDB import PitchDB
 
 
 def generate_table(db):
@@ -84,6 +83,7 @@ def expand_location(x):
 if __name__ == '__main__':
 
     db = PitchDB()
+    db.connect()
     df = generate_table(db)
 
     counts = parse_count(df['count'])
