@@ -14,12 +14,11 @@ import pandas
 
 class PitchDB(object):
 
-    def __init__(self):
-        self._db_connection = None
-        self._db_cur = None
+    _db_connection = None
+    _db_cur = None
 
-    def connect(self):
-        self._db_connection = sqlite3.connect('../data/pitches.sqlite3')
+    def __init__(self):
+        self._db_connection = sqlite3.connect('../../data/pitches.sqlite3')
 
     def query(self, query, **kwargs):
         return pd.read_sql(query, self._db_connection, **kwargs)
