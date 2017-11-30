@@ -18,6 +18,10 @@ class PitchDB(object):
     def query(self, query, **kwargs):
         return pd.read_sql(query, self._db_connection, **kwargs)
 
+    def create(self, data, name, if_exists='replace', index=False, **kwargs):
+        data.to_sql(name, con=self._db_connection, if_exists=if_exists,
+                  index=index, **kwargs)
+
     def close(self):
         self._db_connection.close()
 
@@ -84,11 +88,23 @@ def get_location(x, time=180, from_plate=True):
         print('Warning: Insufficient path. Shape {}'.format(parse_trajectories(x).shape))
         return np.nan
 
+
+def expand_location(x):
+    x = x.apply(np.ravel)
+    x = x.apply(pd.Series)
+    x.columns = ['tx', 'ty', 'tz']
+    return x
+
 if __name__ == '__main__':
 
     db = PitchDB()
-    main_df = generate_table(db)
+    df = generate_table(db)
 
-    counts = parse_count(main_df['count'])
-    main_df = pd.concat([main_df, counts], axis=1)
-    z = main_df['trajectories'].apply(lambda x: get_location(x))
+    counts = parse_count(df['count'])
+    df = pd.concat([df, counts], axis=1)
+    loc = df['trajectories'].apply(lambda x: get_location(x))
+    df = pd.concat([df, expand_location(loc)], axis=1)
+
+    db.create(df, 'features')
+    db.close()
+
