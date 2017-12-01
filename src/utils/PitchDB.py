@@ -9,7 +9,7 @@ will be done separate from version control. -DG
 """
 
 import sqlite3
-import pandas
+import pandas as pd
 
 
 class PitchDB(object):
