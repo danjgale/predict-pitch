@@ -8,9 +8,11 @@ projects (and thus likely migrated to a PostgreSQL database), configuration
 will be done separate from version control. -DG
 """
 
+import os
 import sqlite3
 import pandas as pd
 
+_package_directory = os.path.dirname(os.path.abspath(__file__))
 
 class PitchDB(object):
 
@@ -18,7 +20,9 @@ class PitchDB(object):
     _db_cur = None
 
     def __init__(self):
-        self._db_connection = sqlite3.connect('../../data/pitches.sqlite3')
+
+        _db_path = os.path.join(_package_directory, '../../data/pitches.sqlite3')
+        self._db_connection = sqlite3.connect(_db_path)
 
     def query(self, query, **kwargs):
         return pd.read_sql(query, self._db_connection, **kwargs)
