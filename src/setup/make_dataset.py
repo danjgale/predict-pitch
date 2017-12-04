@@ -149,6 +149,6 @@ if __name__ == '__main__':
 
 
 
-    # db.create(df, 'dataset')
-    # db.close()
+    db.create(df, 'dataset')
+    db.close()
 
