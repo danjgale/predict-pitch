@@ -18,7 +18,7 @@ def generate_table(db):
     )
     q2 = (
         'select num, event_num, play_guid, count, type, pitch_type, gameday_link, '
-        'sz_top, sz_bot, px, pz, spin_rate, spin_dir, vx0, vy0, vz0 '
+        'sz_top, sz_bot, px, pz, spin_rate, spin_dir, vx0, vy0, vz0, x0, y0, z0 '
         'from pitch'
     )
     q3 = (
@@ -32,24 +32,58 @@ def generate_table(db):
     )
     return df
 
+def compute_zone_height(x, median=True, add_radius=True):
+    """Get central tendency of zone limits for each batter.
+
+    There can be variability of the strike zone height for each batter.
+    Therefore, to make things consistent, this takes either the mean or median
+    of the top and bottom of a player's strike zone. The ball radius can be
+    accounted for as well.
+    """
+
+    if median:
+        grouped = x.groupby('batter').median()[['sz_top', 'sz_bot']]
+    else:
+        grouped = x.groupby('batter').mean()[['sz_top', 'sz_bot']]
+
+    if add_radius:
+        ball_radius = 1.57 / 12
+        grouped['sz_top'] = grouped['sz_top'] + ball_radius
+        grouped['sz_bot'] = grouped['sz_bot'] - ball_radius
+
+    grouped.rename(
+        columns={'sz_top': 'adj_sz_top', 'sz_bot': 'adj_sz_bot', },
+        inplace=True
+    )
+
+    grouped.reset_index(level=0, inplace=True)
+
+    return grouped
+
 
 def call_pitch(x, z, zone_bounds):
     """Determine if pitch is a strike or a ball based on ball position as
-    it crosses homeplate.
+    it crosses homeplate. Returns 1 if it is a strike.
 
     Get the x and z position of the ball at home plate and set as either a
     ball or strike regardless of whether or not the batter swung. Zone bounds
-    entered in as a list: [top, bottom]
+    entered in as a list: [top, bottom]. Note that x
     """
-    if (abs(x) < 8.5) & (z < zone_bounds[0]) & (z > zone_bounds[1]):
-        return 's'
+
+    strike_zone_half = 8.5
+    ball_diameter = 1.57
+    zone_width = (strike_zone_half + ball_diameter) / 12 # convert to ft
+
+    if (abs(x) < zone_width) & (z < zone_bounds[0]) & (z > zone_bounds[1]):
+        return 1
     else:
-        return 'b'
+        return 0
+
 
 def parse_count(x):
     """Create separate columns for balls and strikes in the count"""
     series = x.str.split('-', expand=True)
-    series.columns = ['balls', 'strike']
+    series.columns = ['balls', 'strikes']
     return series
 
 
@@ -74,27 +108,47 @@ def get_location(x, time=180, from_plate=True):
         return np.nan
 
 
-def expand_location(x):
+def expand_location(x, colnames=['tx', 'ty', 'tz']):
     """Create x, y, z columns from location array"""
     x = x.apply(np.ravel)
     x = x.apply(pd.Series)
-    x.columns = ['tx', 'ty', 'tz']
+    x.columns = colnames
     return x
 
+# def main():
 
-def main():
+if __name__ == '__main__':
+    # main()
     db = PitchDB()
     df = generate_table(db)
 
     counts = parse_count(df['count'])
-    df = pd.concat([df, counts], axis=1)
-    loc = df['trajectories'].apply(lambda x: get_location(x))
-    df = pd.concat([df, expand_location(loc)], axis=1)
 
-    db.create(df, 'features')
-    db.close()
+    zone_height = compute_zone_height(df)
+    df = df.merge(zone_height, on='batter')
+
+    is_strike = df.apply(
+        lambda x: call_pitch(x['px'], x['pz'], [
+                             x['adj_sz_top'], x['adj_sz_bot']]),
+        axis=1
+    )
+    is_strike.name = 'is_strike'
+
+    print('Computing location at 180ms')
+    loc_180 = df['trajectories'].apply(lambda x: get_location(x, time=180))
+
+    print('Computing location at 220ms')
+    loc_220 = df['trajectories'].apply(lambda x: get_location(x, time=220))
+
+    df.drop('trajectories', axis=1, inplace=True)
+
+    df = pd.concat(
+        [df, expand_location(loc_180, ['tx_180', 'ty_180', 'tz_180']),
+         expand_location(loc_220, ['tx_220', 'ty_220', 'tz_220']),
+         is_strike, counts], axis=1)
 
 
-if __name__ == '__main__':
-    main()
+
+    # db.create(df, 'dataset')
+    # db.close()
 
