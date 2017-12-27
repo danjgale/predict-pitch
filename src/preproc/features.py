@@ -106,6 +106,12 @@ if __name__ == '__main__':
     df = df.dropna(subset=['tx_225', 'tz_225',
                            'tx_175', 'tz_175', 'spin_rate'])
 
+    # get data only from those who made the pitcher shortlist
+    selected_pitchers = pd.read_csv('../data/pitcher_stats.csv')
+
+    df = df.merge(selected_pitchers[['mlb_id', 'Name']],
+                  left_on='pitcher', right_on='mlb_id')
+
     # compute initial displacement (from 50ft to 225ms after release)
     df['disp'] = df.apply(lambda x: compute_init_displacement(x), axis=1)
 
